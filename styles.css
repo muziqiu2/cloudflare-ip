@@ -11,9 +11,13 @@
     --accent-soft: rgba(0, 229, 255, 0.18);
     --accent-strong: #7cf9ff;
     --warn: #ffb86b;
-    --serif: "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
-    --display: "Abril Fatface", "Noto Serif SC", serif;
-    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+              "Source Han Sans SC", "Noto Sans CJK SC", "Hiragino Sans GB",
+              Georgia, "Times New Roman", serif;
+    --display: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC",
+               -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+             "Courier New", "PingFang SC", monospace;
     --radius-s: 6px;
     --radius: 14px;
     --radius-l: 22px;
@@ -24,6 +28,14 @@
 
 * { box-sizing: border-box; }
 
+/* 让浏览器走快速滚动路径；启用触摸惯性滚动并禁止超界反弹 */
+html {
+    -webkit-text-size-adjust: 100%;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+}
+
 html, body {
     margin: 0;
     padding: 0;
@@ -33,72 +45,108 @@ html, body {
     font-size: 17px;
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    overflow-x: hidden;
+    text-rendering: optimizeSpeed;
 }
 
 body {
+    /* 防止横向溢出导致的水平弹跳滚动；只在 body 设置，不影响 html 的滚动层 */
+    overflow-x: clip;
+}
+
+/* 全站使用系统字体栈，不依赖 fonts.googleapis.com 等第三方字体服务。
+   这是中国大陆用户访问速度的关键优化，避免字体加载失败导致首屏白屏或卡顿。
+   如需后续引入自托管字体，请使用 @font-face { font-display: swap; } 并放在 /fonts/ 目录。 */
+
+body {
+    /* 防止横向溢出导致的水平弹跳滚动；只在 body 设置，不影响 html 的滚动层 */
     min-height: 100vh;
-    position: relative;
-    background:
+    overflow-x: clip;
+    /* 背景色 + 渐变色分离，首帧即可稳定绘制，减少闪烁 */
+    background-color: var(--bg-0);
+    background-image:
         radial-gradient(1200px 800px at 85% -10%, rgba(0, 229, 255, 0.18), transparent 60%),
-        radial-gradient(900px 700px at -10% 30%, rgba(124, 249, 255, 0.08), transparent 60%),
+        radial-gradient(900px 700px at -10% 30%, rgba(124, 249, 255, 0.08), transparent 70%),
         linear-gradient(180deg, #05070f 0%, #0a0e27 40%, #05070f 100%);
 }
 
-/* Decorative layers */
-.grain {
-    pointer-events: none;
+/* 装饰层：将所有 fixed 装饰统一放入一个 GPU 合成层，避免每帧重绘整个视口 */
+.decor {
     position: fixed;
     inset: 0;
-    z-index: 1;
-    opacity: 0.5;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.12 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    pointer-events: none;
+    z-index: 0;
+    /* 提升到独立合成层：浏览器只需做一次性栅格化
+       —— 滚动时不再重绘该层的子元素。 */
+    transform: translateZ(0);
+    will-change: transform;
+    isolation: isolate;
+}
+
+/* Decorative layers — 所有装饰以 absolute 定位留在同一合成层中，
+   避免每滚动一帧就迫使浏览器重绘整个视口。 */
+.grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.35;
+    /* 用 CSS 渐变叠出低成本"噪点"替代 SVG Turbulence；
+       后者每帧都需重新计算，会显著拖慢滚动。 */
+    background-image:
+        radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 4px 4px, 6px 6px;
+    background-position: 0 0, 2px 2px;
 }
 
 .grid-bg {
-    pointer-events: none;
-    position: fixed;
+    position: absolute;
     inset: 0;
-    z-index: 0;
+    /* 用大而柔和的径向渐变模拟 mask 的衰减效果，避开昂贵的 mask-image */
+    background:
+        radial-gradient(ellipse at 50% 20%,
+            rgba(234, 242, 255, 0.055) 0%,
+            rgba(234, 242, 255, 0.035) 25%,
+            transparent 60%);
+    background-blend-mode: screen;
+}
+.grid-bg::before {
+    /* 网格线以独立伪元素覆盖，避免 mask 导致的持续重绘 */
+    content: "";
+    position: absolute;
+    inset: 0;
     background-image:
-        linear-gradient(to right, rgba(234,242,255,0.04) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(234,242,255,0.04) 1px, transparent 1px);
+        linear-gradient(to right, rgba(234, 242, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(234, 242, 255, 0.035) 1px, transparent 1px);
     background-size: 72px 72px;
-    mask-image: radial-gradient(ellipse at 50% 20%, #000 30%, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse at 50% 20%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse at 50% 20%, #000 25%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 20%, #000 25%, transparent 70%);
 }
 
 .orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.6;
-    z-index: 0;
-    pointer-events: none;
-    animation: drift 18s ease-in-out infinite alternate;
+    opacity: 0.7;
+    /* 用超大、半透明的径向渐变作为"柔和光晕"，
+       取代昂贵的 filter: blur(80px)。 */
 }
 .orb--one {
-    width: 520px;
-    height: 520px;
-    top: -120px;
-    right: -80px;
-    background: radial-gradient(circle at 30% 30%, rgba(0, 229, 255, 0.55), transparent 65%);
+    width: 760px;
+    height: 760px;
+    top: -260px;
+    right: -160px;
+    background: radial-gradient(circle at 30% 30%,
+        rgba(0, 229, 255, 0.45) 0%,
+        rgba(0, 229, 255, 0.18) 35%,
+        transparent 70%);
 }
 .orb--two {
-    width: 420px;
-    height: 420px;
-    bottom: -80px;
-    left: -60px;
-    background: radial-gradient(circle at 70% 70%, rgba(124, 249, 255, 0.35), transparent 70%);
-    animation-duration: 24s;
-    animation-delay: -6s;
-}
-@keyframes drift {
-    0%   { transform: translate(0, 0) scale(1); }
-    50%  { transform: translate(20px, -30px) scale(1.08); }
-    100% { transform: translate(-15px, 20px) scale(0.96); }
+    width: 620px;
+    height: 620px;
+    bottom: -200px;
+    left: -160px;
+    background: radial-gradient(circle at 70% 70%,
+        rgba(124, 249, 255, 0.30) 0%,
+        rgba(124, 249, 255, 0.10) 40%,
+        transparent 75%);
 }
 
 /* Navigation */
