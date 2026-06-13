@@ -11,9 +11,13 @@
     --accent-soft: rgba(0, 229, 255, 0.18);
     --accent-strong: #7cf9ff;
     --warn: #ffb86b;
-    --serif: "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
-    --display: "Abril Fatface", "Noto Serif SC", serif;
-    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+              "Source Han Sans SC", "Noto Sans CJK SC", "Hiragino Sans GB",
+              Georgia, "Times New Roman", serif;
+    --display: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC",
+               -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+             "Courier New", "PingFang SC", monospace;
     --radius-s: 6px;
     --radius: 14px;
     --radius-l: 22px;
@@ -23,6 +27,11 @@
 }
 
 * { box-sizing: border-box; }
+
+html {
+    -webkit-text-size-adjust: 100%;
+    /* 避免系统因字体尚未就绪阻塞首屏渲染；配合下文 font-display 策略 */
+}
 
 html, body {
     margin: 0;
@@ -37,12 +46,17 @@ html, body {
     overflow-x: hidden;
 }
 
+/* 全站使用系统字体栈，不依赖 fonts.googleapis.com 等第三方字体服务。
+   这是中国大陆用户访问速度的关键优化，避免字体加载失败导致首屏白屏或卡顿。
+   如需后续引入自托管字体，请使用 @font-face { font-display: swap; } 并放在 /fonts/ 目录。 */
+
 body {
     min-height: 100vh;
     position: relative;
-    background:
+    background-color: var(--bg-0);
+    background-image:
         radial-gradient(1200px 800px at 85% -10%, rgba(0, 229, 255, 0.18), transparent 60%),
-        radial-gradient(900px 700px at -10% 30%, rgba(124, 249, 255, 0.08), transparent 60%),
+        radial-gradient(900px 700px at -10% 30%, rgba(124, 249, 255, 0.08), transparent 70%),
         linear-gradient(180deg, #05070f 0%, #0a0e27 40%, #05070f 100%);
 }
 
